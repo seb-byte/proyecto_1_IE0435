@@ -24,8 +24,7 @@ proyecto_1_IE0435/
 │   └── negative/           # Fotos Negativas
 │   └── positive/           # Fotos Positivas
 │
-├── SVM/
-│   └── svm.py              # Entrena el modelo SVM
+├── svm.py                  # Entrena el modelo SVM
 │
 ├── c26797_sebastian_rojas.joblib # Modelo ya entrenado
 │
