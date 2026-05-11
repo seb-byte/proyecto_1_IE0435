@@ -38,7 +38,7 @@ proyecto_1_IE0435/
 ├── requirements.txt        # Dependencias Python
 │
 └── reports/
-    └── informe_final.md    # Informe técnico completo
+    └── C26797_informe_final.pdf    # Informe técnico completo
 ```
 
 ---
