@@ -12,7 +12,13 @@ import sys
 from datetime import datetime
 
 # Needed for joblib unpickling of saved model objects
+import types as _types
+import models as _models_module
 from models import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid  # noqa: F401
+_mw = _types.ModuleType("model_wrappers")
+for _attr in ("ThresholdedSVM", "ThresholdedRF", "RFSVMHybrid", "SVMRFHybrid"):
+    setattr(_mw, _attr, getattr(_models_module, _attr))
+sys.modules.setdefault("model_wrappers", _mw)
 
 N_FEATURES = 16384
 
@@ -302,7 +308,7 @@ if __name__ == "__main__":
             if metrics:
                 rec_pos = metrics.get('recall_pos', 0)
                 rec_neg = metrics.get('recall_neg', 0)
-                flag    = " ⚠️" if rec_pos < 0.3 or rec_neg < 0.3 else " ✅"
+                flag    = " [!]" if rec_pos < 0.3 or rec_neg < 0.3 else " [OK]"
                 print(f"  {name:<22}"
                       f"{metrics['accuracy']:>9.4f}"
                       f"{metrics['precision']:>6.2f}"

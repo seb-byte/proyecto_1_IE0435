@@ -32,7 +32,13 @@ except ImportError:
     sys.exit(1)
 
 # Needed for joblib unpickling of saved model objects
+import types as _types
+import models as _models_module
 from models import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid
+_mw = _types.ModuleType("model_wrappers")
+for _attr in ("ThresholdedSVM", "ThresholdedRF", "RFSVMHybrid", "SVMRFHybrid"):
+    setattr(_mw, _attr, getattr(_models_module, _attr))
+sys.modules.setdefault("model_wrappers", _mw)
 
 # ── Configuración de imagen (debe coincidir con generate_dataset.py) ──────────
 IMG_SIZE = 128
