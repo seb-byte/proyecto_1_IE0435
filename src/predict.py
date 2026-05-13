@@ -32,9 +32,9 @@ except ImportError:
     sys.exit(1)
 
 # Needed for joblib unpickling of saved model objects
-from model_wrappers import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid
+from models import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid
 
-# ── Configuración de imagen (debe coincidir con generar_dataset.py) ───────────
+# ── Configuración de imagen (debe coincidir con generate_dataset.py) ──────────
 IMG_SIZE = 128
 
 BRILLO    = 0
@@ -54,18 +54,19 @@ ADAPT_C           = 5
 
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
 
-MODELS = {
-    "1": ("Árbol de Decisión", "decision_tree_model.joblib", "sklearn"),
-    "2": ("Naive Bayes",       "naive_bayes_model.joblib",   "sklearn"),
-    "3": ("KNN",               "knn_model.joblib",           "sklearn"),
-    "4": ("SVM",               "c26797_sebastian_rojas.joblib",           "sklearn"),
-    "5": ("Random Forest",     "random_forest_model.joblib", "sklearn"),
-    "6": ("Red Neuronal",      "nn_model_keras.keras",       "keras"),
-    "7": ("RF+SVM Híbrido",    "rf_svm_model.joblib",        "sklearn"),
-    "8": ("SVM+RF Híbrido",    "svm_rf_model.joblib",        "sklearn"),
-}
+_BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_MODELS_DIR = os.path.join(_BASE_DIR, "models")
 
-_MODELS_DIR = os.path.dirname(os.path.abspath(__file__))
+MODELS = {
+    "1": ("Árbol de Decisión", os.path.join(_MODELS_DIR, "decision_tree_model.joblib"),         "sklearn"),
+    "2": ("Naive Bayes",       os.path.join(_MODELS_DIR, "naive_bayes_model.joblib"),            "sklearn"),
+    "3": ("KNN",               os.path.join(_MODELS_DIR, "knn_model.joblib"),                    "sklearn"),
+    "4": ("SVM",               os.path.join(_MODELS_DIR, "c26797_sebastian_rojas.joblib"),       "sklearn"),
+    "5": ("Random Forest",     os.path.join(_MODELS_DIR, "random_forest_model.joblib"),          "sklearn"),
+    "6": ("Red Neuronal",      os.path.join(_MODELS_DIR, "nn_model_keras.keras"),                "keras"),
+    "7": ("RF+SVM Híbrido",    os.path.join(_MODELS_DIR, "rf_svm_model.joblib"),                 "sklearn"),
+    "8": ("SVM+RF Híbrido",    os.path.join(_MODELS_DIR, "svm_rf_model.joblib"),                 "sklearn"),
+}
 
 # Precalcular CLAHE y tabla gamma una sola vez
 _CLAHE = (
@@ -168,8 +169,7 @@ def select_model_menu() -> tuple[str, str, str]:
     print("\n" + "="*60)
     print("  SELECCIÓN DE MODELO")
     print("="*60)
-    for key, (name, fname, _) in MODELS.items():
-        path   = os.path.join(_MODELS_DIR, fname)
+    for key, (name, path, _) in MODELS.items():
         status = "existe" if os.path.exists(path) else "no encontrado"
         print(f"    [{key}] {name:<22} ({status})")
     print("="*60)
@@ -177,8 +177,8 @@ def select_model_menu() -> tuple[str, str, str]:
     if choice not in MODELS:
         print("  Opción inválida. Saliendo.")
         sys.exit(1)
-    name, fname, mtype = MODELS[choice]
-    return name, os.path.join(_MODELS_DIR, fname), mtype
+    name, path, mtype = MODELS[choice]
+    return name, path, mtype
 
 
 def recopilar_imagenes(carpeta: str) -> list[tuple[str, str, int | None]]:
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     # Guardar CSV
     timestamp  = datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_nombre = f"predicciones_{model_name.replace(' ', '_')}_{timestamp}.csv"
-    csv_path   = os.path.join(_MODELS_DIR, csv_nombre)
+    csv_path   = os.path.join(_BASE_DIR, csv_nombre)
 
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)

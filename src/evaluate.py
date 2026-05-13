@@ -12,12 +12,15 @@ import sys
 from datetime import datetime
 
 # Needed for joblib unpickling of saved model objects
-from model_wrappers import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid  # noqa: F401
+from models import ThresholdedSVM, ThresholdedRF, RFSVMHybrid, SVMRFHybrid  # noqa: F401
 
 N_FEATURES = 16384
 
+_BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_MODELS_DIR = os.path.join(_BASE_DIR, "models")
+
 MODELS = {
-    "1": ("SVM",           "c26797_sebastian_rojas.joblib",    "sklearn"),
+    "1": ("SVM", os.path.join(_MODELS_DIR, "c26797_sebastian_rojas.joblib"), "sklearn"),
 }
 
 

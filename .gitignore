@@ -1,2 +1,4 @@
-fotos/negative/
-fotos/positive/
+data/raw/negative/
+data/raw/positive/
+__pycache__/
+*.pyc

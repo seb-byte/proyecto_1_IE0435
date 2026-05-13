@@ -17,10 +17,10 @@ Cada fila del CSV contiene 16 384 valores enteros (0 o 1) seguidos de la etiquet
 
 Las imágenes capturadas y las de los demás compañeros se organizaron manualmente en dos carpetas:
 
-- `positive/` — imágenes que contienen contaminación (etiqueta 1)
-- `negative/` — imágenes limpias, sin contaminación (etiqueta 0)
+- `data/raw/positive/` — imágenes que contienen contaminación (etiqueta 1)
+- `data/raw/negative/` — imágenes limpias, sin contaminación (etiqueta 0)
 
-El script `generar_dataset.py` convierte cada imagen al formato del dataset aplicando el siguiente pipeline:
+El script `src/generate_dataset.py` convierte cada imagen al formato del dataset aplicando el siguiente pipeline:
 
 1. **Redimensionado** a 128×128 píxeles (`cv2.INTER_AREA`).
 2. **Conversión a escala de grises**.
@@ -54,12 +54,30 @@ La división train/test se hace con balance exacto de clases y mezcla aleatoria 
 
 ## Reproducibilidad
 
-Para regenerar el dataset exacto, debe primero tener en carpetas llamadas positive y negative las fotos correspondientes a cada uno. Después de esto, debe ajustar los siguientes parámetros y correr el programa.
+Para regenerar el dataset exacto:
+
+**1. Colocar las imágenes en las carpetas correspondientes:**
+
+```
+data/raw/positive/   ← imágenes con contaminación
+data/raw/negative/   ← imágenes sin contaminación
+```
+
+**2. Verificar los parámetros en el encabezado de `src/generate_dataset.py`:**
+
+| Parámetro | Valor original |
+|---|---|
+| `SEMILLA` | 42 |
+| `TRAIN_POR_CLASE` | 100 |
+| `TEST_POR_CLASE` | 30 |
+
+`TRAIN_POR_CLASE` y `TEST_POR_CLASE` controlan cuántas muestras por clase van a cada split. El conjunto de entrenamiento se usa para ajustar el modelo; el de prueba sirve para evaluar con datos nunca vistos.
+
+**3. Ejecutar el script:**
 
 ```bash
-# Asegurarse de que SEMILLA = 42, TRAIN_POR_CLASE = 100, TEST_POR_CLASE = 30
-python generar_dataset.py
+python src/generate_dataset.py
 ```
-`TRAIN_POR_CLASE` y `TEST_POR_CLASE` permiten dividir los datos en dos datasets. El primero para entrenar el modelo y el segundo para evaluarlo con datos que nunca ha visto.
 
-Las matrices de verificación de binarización se guardan automáticamente en `verificacion/` para inspección visual.
+Esto genera `data/processed/train.csv`, `data/processed/test.csv` y `data/processed/dataset.csv`.
+Las imágenes de verificación de la binarización se guardan en `reports/figures/` para inspección visual.

@@ -16,96 +16,123 @@ pip install -r requirements.txt
 
 ```
 proyecto_1_IE0435/
-├── generar_dataset.py      # Convierte carpetas de imágenes a CSV
-├── train.csv               # Dataset de entrenamiento (200 filas)
-├── test.csv                # Dataset de prueba (60 filas)
 │
-├── fotos/
-│   └── negative/           # Fotos Negativas
-│   └── positive/           # Fotos Positivas
+├── src/                            # Código fuente
+│   ├── models.py                   # Clases ThresholdedRF, ThresholdedSVM, híbridos
+│   ├── generate_dataset.py         # Convierte imágenes a CSV
+│   ├── train.py                    # Entrena el modelo SVM
+│   ├── predict.py                  # Inferencia desde carpeta de imágenes
+│   └── evaluate.py                 # Evaluación sobre CSV con métricas
 │
-├── svm.py                  # Entrena el modelo SVM
+├── data/
+│   ├── raw/
+│   │   ├── positive/               # ← Colocar aquí las fotos CON contaminación
+│   │   └── negative/               # ← Colocar aquí las fotos SIN contaminación
+│   └── processed/
+│       ├── train.csv               # Dataset de entrenamiento (200 filas, generado)
+│       └── test.csv                # Dataset de prueba (60 filas, generado)
 │
-├── c26797_sebastian_rojas.joblib # Modelo ya entrenado
+├── models/
+│   └── c26797_sebastian_rojas.joblib   # Modelo SVM ya entrenado
 │
-├── model_wrappers.py       # Clase ThresholdedRF (wrapper pipeline + umbral)
-├── predict_folder.py       # Inferencia directa desde carpeta de imágenes
+├── reports/
+│   ├── figures/                    # Imágenes de verificación de binarización (generadas)
+│   └── Proyecto_1_Informe_Final_C26797.pdf
 │
-├── README.md               # Este archivo — instrucciones de uso
-├── DATASET.md              # Descripción del dataset y proceso de recolección
-├── MODEL_CARD.md           # Ficha del modelo (métricas, limitaciones, ética)
-├── LICENSE                 # Licencia MIT
-├── requirements.txt        # Dependencias Python
-│
-└── reports/
-    └── C26797_informe_final.pdf    # Informe técnico completo
+├── DATASET.md                      # Descripción del dataset y proceso de recolección
+├── MODEL_CARD.md                   # Ficha del modelo (métricas, limitaciones, ética)
+├── README.md
+├── LICENSE
+└── requirements.txt
 ```
+
+> **Nota:** Las carpetas `data/raw/positive/` y `data/raw/negative/` están en `.gitignore` — las imágenes no se suben al repositorio.
 
 ---
 
-## 1. Preparar el dataset
+## Flujo de trabajo
 
-Colocar las imágenes en dos carpetas:
+### Paso 1 — Colocar las fotos
+
+Copiar las imágenes en las carpetas correspondientes:
 
 ```
-positive/   <- imágenes con contaminación  (etiqueta 1)
-negative/   <- imágenes sin contaminación  (etiqueta 0)
+data/raw/positive/   ← fotos CON contaminación (grano de arroz, objeto extraño)
+data/raw/negative/   ← fotos SIN contaminación (superficie limpia)
 ```
 
-Luego ejecutar:
-
-```bash
-python generar_dataset.py
-```
-
-Esto genera `dataset.csv`, `train.csv` y `test.csv`.
-Ajustar `TRAIN_POR_CLASE` y `TEST_POR_CLASE` en el encabezado del script según el número de imágenes disponibles.
+Formatos soportados: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`, `.tif`
 
 ---
 
-## 2. Entrenamiento
+### Paso 2 — Generar el dataset
 
 ```bash
-python SVM/svm.py
+python src/generate_dataset.py
+```
+
+Esto procesa todas las imágenes en `data/raw/`, las binariza y genera:
+
+- `data/processed/train.csv` — set de entrenamiento
+- `data/processed/test.csv` — set de prueba
+- `data/processed/dataset.csv` — dataset completo
+- `reports/figures/` — PNGs de verificación de la binarización
+
+Ajustar en el encabezado de `src/generate_dataset.py` si es necesario:
+
+| Parámetro | Valor por defecto | Descripción |
+|---|---|---|
+| `TRAIN_POR_CLASE` | 100 | Muestras por clase en train |
+| `TEST_POR_CLASE` | 30 | Muestras por clase en test |
+
+---
+
+### Paso 3 — Entrenar el modelo
+
+```bash
+python src/train.py
 ```
 
 El script:
-1. Carga `train.csv` y divide en 80% entrenamiento / 20% validación.
-2. Entrena un pipeline `StandardScaler -> PCA(30) -> SVC(RBF, C=20, gamma=0.003)`.
-3. Busca el umbral óptimo en el split de validación maximizando `geometric_recall`.
-4. Imprime métricas finales (accuracy, recall+, recall-, F1, ROC-AUC).
-5. Guarda el modelo en `svm_model.joblib`.
+1. Carga `data/processed/train.csv` y separa en 80% train / 20% validación.
+2. Entrena `StandardScaler → PCA(30) → SVC(RBF, C=20, γ=0.003)`.
+3. Busca el umbral óptimo maximizando `geometric_recall` en validación.
+4. Imprime accuracy, recall+, recall−, F1 y ROC-AUC.
+5. Guarda el modelo en `models/svm_model.joblib`.
 
-**Parámetros clave** (editables en el encabezado de `SVM/svm.py`):
+**Parámetros clave** (editables en `src/train.py`):
 
 | Parámetro | Valor | Descripción |
 |---|---|---|
 | `N_COMPONENTS` | 30 | Componentes PCA |
 | `C` | 20.0 | Regularización SVM |
 | `GAMMA` | 0.003 | Ancho del kernel RBF |
-| `TARGET_RECALL` | 0.90 | Objetivo de recall para ambas clases |
+| `TARGET_RECALL` | 0.90 | Objetivo de recall mínimo por clase |
 
 ---
 
-## 3. Inferencia desde carpeta de imágenes
-La idea de esta prueba es simular el ambiente real, por lo que se encarga de recibir fotos como input, pasarlas a la matriz de ceros y unos, pasarle estos datos al modelo y hacer la predicción. Esta prueba cuenta con dos modos:
+### Paso 4a — Inferencia desde carpeta de imágenes
 
-### Modo predicción (sin etiquetas reales)
+```bash
+python src/predict.py <ruta_carpeta>
+```
+
+**Modo predicción** — la carpeta contiene imágenes directamente (sin etiquetas):
 
 ```
-carpeta_fotos/
-  imagen1.jpg
-  imagen2.jpg
+fotos_nuevas/
+  foto1.jpg
+  foto2.jpg
 ```
 
 ```bash
-python predict_folder.py carpeta_fotos/
+python src/predict.py fotos_nuevas/
 ```
 
-### Modo evaluación (con etiquetas implícitas en subcarpetas)
+**Modo evaluación** — la carpeta contiene subcarpetas `positive/` y `negative/`:
 
 ```
-carpeta_fotos/
+fotos_prueba/
   positive/
     img_a.jpg
   negative/
@@ -113,51 +140,37 @@ carpeta_fotos/
 ```
 
 ```bash
-python predict_folder.py carpeta_fotos/
+python src/predict.py fotos_prueba/
 ```
 
 El modo se detecta automáticamente. En modo evaluación se calculan accuracy, precision, recall y F1.
-El resultado se guarda en:
-
-```
-predicciones_SVM_<timestamp>.csv
-```
-
-Columnas modo predicción: `imagen, prediccion, etiqueta, probabilidad`
-Columnas modo evaluación: `imagen, etiqueta_real, real_label, prediccion, pred_label, probabilidad`
+El resultado se guarda como `predicciones_SVM_<timestamp>.csv` en la raíz del proyecto.
 
 ---
 
-## 4. Prueba básica sobre CSV (test.py)
-
-Una vez entrenado el modelo, se puede evaluar directamente sobre un CSV generado con `generar_dataset.py`:
+### Paso 4b — Evaluación sobre CSV
 
 ```bash
-python test.py
+python src/evaluate.py data/processed/test.csv
 ```
 
-El script pedirá:
-1. **Ruta del CSV** — por defecto usa `dataset_test.csv`. Puede indicarse `test.csv` para evaluar sobre datos nunca vistos durante el entrenamiento.
-2. **Si el CSV incluye etiquetas** — responder `1` (Sí) para calcular métricas, `2` (No) para solo obtener predicciones.
-3. **Qué modelo probar** — seleccionar `4` para el SVM, o `A` para comparar todos los modelos disponibles.
+O en modo interactivo (el script pedirá la ruta y opciones):
+
+```bash
+python src/evaluate.py
+```
 
 El script genera:
 - Reporte en consola con accuracy, precision, recall+, recall−, F1 y matriz de confusión.
-- `resultados_predicciones_<timestamp>.csv` — predicciones por muestra.
-- `resultados_metricas_<timestamp>.csv` — tabla resumen de métricas.
-- Gráficas de matrices de confusión y comparación de métricas (si hay etiquetas).
-
-También puede pasarse el CSV directamente como argumento (asume que tiene etiquetas):
-
-```bash
-python test.py test.csv
-```
+- `test3_resultados_predicciones_<timestamp>.csv` — predicciones por muestra.
+- `test3_resultados_metricas_<timestamp>.csv` — tabla resumen de métricas.
+- Gráficas de matrices de confusión (si hay etiquetas).
 
 ---
 
 ## Parámetros de preprocesado
 
-Los parámetros de `predict_folder.py` deben coincidir con los usados en `generar_dataset.py`:
+Los valores en `src/predict.py` **deben coincidir** con los usados al generar el dataset en `src/generate_dataset.py`:
 
 | Parámetro | Valor por defecto | Descripción |
 |---|---|---|

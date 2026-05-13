@@ -13,7 +13,7 @@ Etiqueta:
     1 = imagen positiva (contiene grano de arroz)
     0 = imagen negativa (no contiene grano de arroz)
 
-Las matrices binarias de verificación se guardan en 'verificacion/'.
+Las matrices binarias de verificación se guardan en 'reports/figures/'.
 """
 
 import os
@@ -21,12 +21,14 @@ import csv
 import cv2
 import numpy as np
 
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # ── Configuración ─────────────────────────────────────────────────────────────
 IMG_SIZE       = 128
-CARPETA_POS    = "fotos/positive"
-CARPETA_NEG    = "fotos/negative"
-ARCHIVO_SALIDA = "dataset.csv"
-CARPETA_VERIF  = "verificacion"          # PNGs de verificación de la binarización
+CARPETA_POS    = os.path.join(_BASE_DIR, "data", "raw", "positive")
+CARPETA_NEG    = os.path.join(_BASE_DIR, "data", "raw", "negative")
+ARCHIVO_SALIDA = os.path.join(_BASE_DIR, "data", "processed", "dataset.csv")
+CARPETA_VERIF  = os.path.join(_BASE_DIR, "reports", "figures")
 EXTENSIONES    = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
 
 # ── División train / test ─────────────────────────────────────────────────────
@@ -193,7 +195,7 @@ def procesar_carpeta(carpeta: str, etiqueta: int, filas: list) -> int:
         return 0
 
     # Subcarpeta de verificación separada por clase
-    subverif = os.path.join(CARPETA_VERIF, carpeta)
+    subverif = os.path.join(CARPETA_VERIF, os.path.basename(carpeta))
     os.makedirs(subverif, exist_ok=True)
 
     contador = 0
@@ -257,8 +259,9 @@ def dividir_y_guardar(filas: list[np.ndarray]) -> None:
     rng.shuffle(train)
     rng.shuffle(test)
 
-    guardar_csv("train.csv", train)
-    guardar_csv("test.csv",  test)
+    _processed = os.path.join(_BASE_DIR, "data", "processed")
+    guardar_csv(os.path.join(_processed, "train.csv"), train)
+    guardar_csv(os.path.join(_processed, "test.csv"),  test)
 
     print(f"\n  train.csv → {len(train)} filas  "
           f"({TRAIN_POR_CLASE} pos + {TRAIN_POR_CLASE} neg)")

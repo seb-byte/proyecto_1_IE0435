@@ -1,6 +1,4 @@
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 import pandas as pd
@@ -17,9 +15,11 @@ from sklearn.metrics import (
     recall_score, roc_auc_score
 )
 
-from model_wrappers import ThresholdedRF  # reuse wrapper: pipeline + threshold
+from models import ThresholdedRF
 
-DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "train.csv")
+_BASE_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH  = os.path.join(_BASE_DIR, "data", "processed", "train.csv")
+MODEL_PATH = os.path.join(_BASE_DIR, "models", "svm_model.joblib")
 
 # Mejores parámetros encontrados vía optimización en train.csv
 N_COMPONENTS = 30
@@ -124,5 +124,5 @@ print(confusion_matrix(y_val, y_pred))
 # Guardar — ThresholdedRF reutiliza el wrapper pipeline+umbral
 # ============================================================
 model = ThresholdedRF(pipeline=pipeline, threshold=best_thresh)
-joblib.dump(model, os.path.join(os.path.dirname(__file__), "..", "svm_model.joblib"))
-print(f"\nModelo guardado: svm_model.joblib  (umbral={best_thresh:.3f})")
+joblib.dump(model, MODEL_PATH)
+print(f"\nModelo guardado: {MODEL_PATH}  (umbral={best_thresh:.3f})")
