@@ -21,10 +21,10 @@ _BASE_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH  = os.path.join(_BASE_DIR, "data", "processed", "train.csv")
 MODEL_PATH = os.path.join(_BASE_DIR, "models", "svm_model.joblib")
 
-# Mejores parámetros encontrados vía optimización en train.csv
-N_COMPONENTS = 30
-C            = 20.0
-GAMMA        = 0.003
+# Parámetros extraídos de c26797_sebastian_rojas.joblib
+N_COMPONENTS  = 15
+C             = 36.36
+GAMMA         = 0.002
 TARGET_RECALL = 0.90
 
 
@@ -121,7 +121,7 @@ print(confusion_matrix(y_val, y_pred))
 
 
 # ============================================================
-# Guardar — ThresholdedRF reutiliza el wrapper pipeline+umbral
+# Guardar
 # ============================================================
 model = ThresholdedRF(pipeline=pipeline, threshold=best_thresh)
 joblib.dump(model, MODEL_PATH)
