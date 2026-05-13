@@ -1,6 +1,7 @@
 # Model Card — Detección de Contaminación en Imágenes
 
-**Modelo:** SVM (Support Vector Machine)
+**Modelo:** SVM RBF con umbral optimizado (`ThresholdedRF` wrapper)
+**Archivo:** `c26797_sebastian_rojas.joblib`
 **Versión:** 15.2
 **Fecha:** 2026-05
 
@@ -8,8 +9,9 @@
 
 ## Nombre del modelo
 
-**SVM RBF** (`svm_model.joblib`)
-Pipeline: StandardScaler → PCA(n=30) → SVC(kernel=rbf, C=20, γ=0.003, class_weight=balanced).
+**SVM RBF con umbral optimizado** (`c26797_sebastian_rojas.joblib`)
+Wrapper: `ThresholdedRF(pipeline, threshold=0.515)` — usa el mismo wrapper de umbral adaptativo sobre el pipeline SVM.
+Pipeline interno: `StandardScaler → PCA(n_components=30) → SVC(kernel=rbf, C=20, γ=0.003, class_weight=balanced)`.
 
 ---
 
@@ -55,12 +57,79 @@ El dataset fue recolectado a partir del aporte de fotos de múltiples compañero
 
 ## Métricas
 
-El optimizador de umbral es **geometric recall** = √(recall_neg × recall_pos), que penaliza sesgo hacia cualquiera de las dos clases.
+El optimizador de umbral es **geometric recall** = √(recall_neg × recall_pos), que penaliza sesgo hacia cualquiera de las dos clases. El umbral resultante es **0.515**.
 
-**Split de evaluación:** `train_test_split(test_size=0.2, random_state=42, stratify=y)` sobre `train.csv`.  
-El split `test.csv` (60 muestras) está reservado para evaluación final independiente.
+### Glosario de métricas
 
-**Objetivo declarado:** ≥ 90% recall en ambas clases.
+Las siguientes métricas se obtienen a partir de la matriz de confusión (TP = verdaderos positivos, TN = verdaderos negativos, FP = falsos positivos, FN = falsos negativos).
+
+| Métrica | Fórmula | Qué mide |
+|---|---|---|
+| **Accuracy** | (TP + TN) / total | Fracción de predicciones correctas sobre todas las muestras. Engañosa en datasets desbalanceados. |
+| **Balanced Accuracy** | (Recall₊ + Recall₋) / 2 | Promedio de recall por clase; insensible al desbalance. Equivale a accuracy cuando el dataset es 50/50. |
+| **Precision** (clase positiva) | TP / (TP + FP) | De todo lo que el modelo predijo como contaminado, ¿qué fracción realmente lo estaba? Penaliza las falsas alarmas. |
+| **Recall** (Recall positivo / sensibilidad) | TP / (TP + FN) | De todos los casos realmente contaminados, ¿qué fracción detectó el modelo? Penaliza los contaminantes no detectados. |
+| **Recall negativo** (especificidad) | TN / (TN + FP) | De todos los casos realmente limpios, ¿qué fracción clasificó correctamente? Penaliza clasificar como contaminado algo limpio. |
+| **F1-Score** | 2 · (Precision · Recall) / (Precision + Recall) | Media armónica de precision y recall. Útil cuando importa tanto no perder positivos como no generar falsas alarmas. |
+| **ROC-AUC** | Área bajo la curva ROC | Probabilidad de que el modelo asigne mayor score a un positivo aleatorio que a un negativo aleatorio. 0.5 = azar, 1.0 = perfecto. Independiente del umbral. |
+| **Geometric Recall** | √(Recall₋ × Recall₊) | Métrica de optimización del umbral. Cero si cualquiera de los dos recalls es 0; se maximiza solo cuando ambos son altos simultáneamente. |
+
+> **¿Por qué priorizar recall sobre accuracy?** En inspección de calidad, un falso negativo (contaminante no detectado) tiene mayor costo que un falso positivo (producto limpio rechazado), por lo que se optimiza recall sobre precision. El geometric recall obliga a equilibrar la detección de ambas clases.
+
+### Conjunto de validación (`train.csv` — split 80/20, `random_state=42`)
+
+40 muestras (20 positivos + 20 negativos).
+
+| Métrica | Negativo | Positivo | Global |
+|---|---|---|---|
+| Precision | 0.619 | 0.632 | — |
+| Recall | 0.650 | 0.600 | — |
+| F1-Score | 0.633 | 0.615 | — |
+| Accuracy | — | — | **0.625** |
+| Balanced Accuracy | — | — | 0.625 |
+| ROC-AUC | — | — | 0.695 |
+
+**Matriz de confusión (validación):**
+
+|  | Pred. Negativo | Pred. Positivo |
+|---|---|---|
+| **Real Negativo** | 13 (TN) | 7 (FP) |
+| **Real Positivo** | 8 (FN) | 12 (TP) |
+
+---
+
+### Conjunto de prueba final (`test.csv` — evaluación independiente)
+
+60 muestras (30 positivos + 30 negativos).
+
+| Métrica | Negativo | Positivo | Global |
+|---|---|---|---|
+| Precision | 0.769 | 0.706 | — |
+| Recall | 0.667 | 0.800 | — |
+| F1-Score | 0.714 | 0.750 | — |
+| Accuracy | — | — | **0.733** |
+| Balanced Accuracy | — | — | 0.733 |
+| ROC-AUC | — | — | 0.688 |
+
+**Matriz de confusión (test):**
+
+|  | Pred. Negativo | Pred. Positivo |
+|---|---|---|
+| **Real Negativo** | 20 (TN) | 10 (FP) |
+| **Real Positivo** | 6 (FN) | 24 (TP) |
+
+---
+
+### Evaluación vs. objetivo declarado
+
+**Objetivo:** ≥ 90% recall en ambas clases.
+
+| Clase | Recall (val) | Recall (test) | ¿Objetivo alcanzado? |
+|---|---|---|---|
+| Negativo (limpio) | 0.650 | 0.667 | No |
+| Positivo (contaminado) | 0.600 | 0.800 | No |
+
+> El modelo supera el 80% de recall en positivos sobre el set de prueba, pero no alcanza el objetivo de 90% en ninguna de las dos clases en ambos splits. Esto es consistente con el tamaño reducido del dataset (200 muestras de entrenamiento) y la variabilidad de captura no controlada.
 
 ---
 
