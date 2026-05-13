@@ -10,8 +10,8 @@
 ## Nombre del modelo
 
 **SVM RBF con umbral optimizado** (`c26797_sebastian_rojas.joblib`)
-Wrapper: `ThresholdedRF(pipeline, threshold=0.515)` — usa el mismo wrapper de umbral adaptativo sobre el pipeline SVM.
-Pipeline interno: `StandardScaler → PCA(n_components=30) → SVC(kernel=rbf, C=20, γ=0.003, class_weight=balanced)`.
+Wrapper: `ThresholdedRF(pipeline, threshold=0.515)` — embebe el umbral dentro del mismo objeto serializado, sin archivo separado.
+Pipeline interno: `StandardScaler → PCA(n_components=15) → SVC(kernel=rbf, C=36.355, γ=0.00221, class_weight=balanced)`.
 
 ---
 
@@ -76,25 +76,24 @@ Las siguientes métricas se obtienen a partir de la matriz de confusión (TP = v
 
 > **¿Por qué priorizar recall sobre accuracy?** En inspección de calidad, un falso negativo (contaminante no detectado) tiene mayor costo que un falso positivo (producto limpio rechazado), por lo que se optimiza recall sobre precision. El geometric recall obliga a equilibrar la detección de ambas clases.
 
-### Conjunto de validación (`train.csv` — split 80/20, `random_state=42`)
+### Conjunto de entrenamiento (`train.csv` — evaluación con `src/evaluate.py`)
 
-40 muestras (20 positivos + 20 negativos).
+200 muestras (100 positivos + 100 negativos). Evalúa el ajuste del modelo sobre datos conocidos.
 
 | Métrica | Negativo | Positivo | Global |
 |---|---|---|---|
-| Precision | 0.619 | 0.632 | — |
-| Recall | 0.650 | 0.600 | — |
-| F1-Score | 0.633 | 0.615 | — |
-| Accuracy | — | — | **0.625** |
-| Balanced Accuracy | — | — | 0.625 |
-| ROC-AUC | — | — | 0.695 |
+| Precision | 0.92 | 0.88 | — |
+| Recall | 0.88 | 0.91 | — |
+| F1-Score | 0.90 | 0.90 | — |
+| Accuracy | — | — | **0.900** |
+| Balanced Accuracy | — | — | 0.900 |
 
-**Matriz de confusión (validación):**
+**Matriz de confusión (train):**
 
 |  | Pred. Negativo | Pred. Positivo |
 |---|---|---|
-| **Real Negativo** | 13 (TN) | 7 (FP) |
-| **Real Positivo** | 8 (FN) | 12 (TP) |
+| **Real Negativo** | 88 (TN) | 12 (FP) |
+| **Real Positivo** | 9 (FN) | 91 (TP) |
 
 ---
 
@@ -104,12 +103,12 @@ Las siguientes métricas se obtienen a partir de la matriz de confusión (TP = v
 
 | Métrica | Negativo | Positivo | Global |
 |---|---|---|---|
-| Precision | 0.769 | 0.706 | — |
-| Recall | 0.667 | 0.800 | — |
-| F1-Score | 0.714 | 0.750 | — |
-| Accuracy | — | — | **0.733** |
-| Balanced Accuracy | — | — | 0.733 |
-| ROC-AUC | — | — | 0.688 |
+| Precision | 0.77 | 0.71 | — |
+| Recall | 0.67 | 0.80 | — |
+| F1-Score | 0.71 | 0.75 | — |
+| Accuracy | — | — | **0.75** |
+| Balanced Accuracy | — | — | 0.75 |
+
 
 **Matriz de confusión (test):**
 
@@ -124,12 +123,12 @@ Las siguientes métricas se obtienen a partir de la matriz de confusión (TP = v
 
 **Objetivo:** ≥ 90% recall en ambas clases.
 
-| Clase | Recall (val) | Recall (test) | ¿Objetivo alcanzado? |
+| Clase | Recall (train) | Recall (test) | ¿Objetivo alcanzado? |
 |---|---|---|---|
-| Negativo (limpio) | 0.650 | 0.667 | No |
-| Positivo (contaminado) | 0.600 | 0.800 | No |
+| Negativo (limpio) | 0.88 | 0.67 | No (en test) |
+| Positivo (contaminado) | 0.91 | 0.80 | No (en test) |
 
-> El modelo supera el 80% de recall en positivos sobre el set de prueba, pero no alcanza el objetivo de 90% en ninguna de las dos clases en ambos splits. Esto es consistente con el tamaño reducido del dataset (200 muestras de entrenamiento) y la variabilidad de captura no controlada.
+> El modelo alcanza el 91% y 88% de recall sobre los datos de entrenamiento, pero cae a 80% y 67% en el conjunto de prueba independiente. El objetivo de ≥90% en ambas clases no se cumple en condiciones de generalización, lo cual es consistente con el tamaño reducido del dataset (200 muestras) y la variabilidad de captura no controlada.
 
 ---
 
@@ -165,8 +164,8 @@ pip install -r requirements.txt
 ### Entrenamiento
 
 ```bash
-python SVM/svm.py
-# Parámetros fijos: N_COMPONENTS=30, C=20.0, GAMMA=0.003
+python src/train.py
+# Parámetros fijos: N_COMPONENTS=15, C=36.35502692537726, GAMMA=0.0022112559088427667
 # random_state=42 en PCA, SVC y train_test_split
 ```
 

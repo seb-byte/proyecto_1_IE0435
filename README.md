@@ -104,9 +104,9 @@ El script:
 
 | Parámetro | Valor | Descripción |
 |---|---|---|
-| `N_COMPONENTS` | 30 | Componentes PCA |
-| `C` | 20.0 | Regularización SVM |
-| `GAMMA` | 0.003 | Ancho del kernel RBF |
+| `N_COMPONENTS` | 15 | Componentes PCA |
+| `C` | 36.355 | Regularización SVM |
+| `GAMMA` | 0.00221 | Ancho del kernel RBF |
 | `TARGET_RECALL` | 0.90 | Objetivo de recall mínimo por clase |
 
 ---
