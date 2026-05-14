@@ -95,7 +95,7 @@ python src/train.py
 
 El script:
 1. Carga `data/processed/train.csv` y separa en 80% train / 20% validación.
-2. Entrena `StandardScaler → PCA(30) → SVC(RBF, C=20, γ=0.003)`.
+2. Entrena `StandardScaler → PCA(15) → SVC(RBF, C=36.36, γ=0.002)`.
 3. Busca el umbral óptimo maximizando `geometric_recall` en validación.
 4. Imprime accuracy, recall+, recall−, F1 y ROC-AUC.
 5. Guarda el modelo en `models/svm_model.joblib`.
@@ -105,8 +105,8 @@ El script:
 | Parámetro | Valor | Descripción |
 |---|---|---|
 | `N_COMPONENTS` | 15 | Componentes PCA |
-| `C` | 36.355 | Regularización SVM |
-| `GAMMA` | 0.00221 | Ancho del kernel RBF |
+| `C` | 36.36 | Regularización SVM |
+| `GAMMA` | 0.002 | Ancho del kernel RBF |
 | `TARGET_RECALL` | 0.90 | Objetivo de recall mínimo por clase |
 
 ---
